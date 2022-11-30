@@ -44,4 +44,26 @@ defmodule UtilTest do
       assert Util.manhattan_distance({10, 1}, {20, 2}) == 11
     end
   end
+
+  describe "calculate_median/1" do
+    test "gets median" do
+      list = [16, 1, 2, 0, 4, 2, 7, 1, 2, 14]
+
+      assert Util.calculate_median(list) == 2
+    end
+  end
+
+  describe "calculate_media/1" do
+    test "gets media" do
+      list = [16, 1, 2, 0, 4, 2, 7, 1, 2, 14]
+
+      assert Util.calculate_media(list) == 5
+    end
+
+    test "gets media with rown down on .5" do
+      list = [12, 1, 2, 0, 4, 2, 7, 1, 2, 14]
+
+      assert Util.calculate_media(list, down_on_draw: true) == 4
+    end
+  end
 end
