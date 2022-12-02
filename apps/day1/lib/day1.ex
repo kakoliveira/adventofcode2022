@@ -3,13 +3,13 @@ defmodule Day1 do
   Day 1 puzzle solutions
   """
 
-  def solve(file_path: file_path) do
+  def solve(part: part, file_path: file_path) do
     calories = read_calories(file_path)
 
-    solve(calories: calories)
+    solve(part: part, calories: calories)
   end
 
-  def solve(calories: calories) do
+  def solve(part: part, calories: calories) do
     calories
     |> Enum.chunk_while(
       [],
@@ -29,12 +29,23 @@ defmodule Day1 do
       end
     )
     |> Enum.map(&Enum.sum/1)
-    |> Enum.max()
+    |> get_result(part)
   end
 
   defp read_calories(file_path) do
     file_path
     |> FileReader.read()
     |> Enum.map(&Util.safe_to_integer/1)
+  end
+
+  defp get_result(total_calories_per_elf, 1) do
+    Enum.max(total_calories_per_elf)
+  end
+
+  defp get_result(total_calories_per_elf, 2) do
+    total_calories_per_elf
+    |> Enum.sort(:desc)
+    |> Enum.take(3)
+    |> Enum.sum()
   end
 end
