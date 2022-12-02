@@ -3,33 +3,28 @@ defmodule Day1 do
   Day 1 puzzle solutions
   """
 
-  def solve(part: part, file_path: file_path) do
-    calories = read_calories(file_path)
+  @spec solve(binary() | list(), keyword()) :: number()
+  def solve(file_path_or_list, opts \\ [])
 
-    solve(part: part, calories: calories)
-  end
+  def solve(calories, opts) when is_list(calories) do
+    elfs_to_sum = Keyword.get(opts, :elfs_to_sum, 1)
 
-  def solve(part: part, calories: calories) do
     calories
     |> Enum.chunk_while(
       [],
-      fn
-        nil, acc ->
-          {:cont, acc, []}
-
-        value, acc ->
-          {:cont, [value] ++ acc}
-      end,
-      fn
-        [] ->
-          {:cont, []}
-
-        acc ->
-          {:cont, acc, []}
-      end
+      &chunk_while_not_nil/2,
+      &leftovers_are_chunks/1
     )
     |> Enum.map(&Enum.sum/1)
-    |> get_result(part)
+    |> Enum.sort(:desc)
+    |> Enum.take(elfs_to_sum)
+    |> Enum.sum()
+  end
+
+  def solve(file_path, opts) do
+    calories = read_calories(file_path)
+
+    solve(calories, opts)
   end
 
   defp read_calories(file_path) do
@@ -38,14 +33,9 @@ defmodule Day1 do
     |> Enum.map(&Util.safe_to_integer/1)
   end
 
-  defp get_result(total_calories_per_elf, 1) do
-    Enum.max(total_calories_per_elf)
-  end
+  defp chunk_while_not_nil(nil, acc), do: {:cont, acc, []}
+  defp chunk_while_not_nil(value, acc), do: {:cont, [value] ++ acc}
 
-  defp get_result(total_calories_per_elf, 2) do
-    total_calories_per_elf
-    |> Enum.sort(:desc)
-    |> Enum.take(3)
-    |> Enum.sum()
-  end
+  defp leftovers_are_chunks([]), do: {:cont, []}
+  defp leftovers_are_chunks(acc), do: {:cont, acc, []}
 end
