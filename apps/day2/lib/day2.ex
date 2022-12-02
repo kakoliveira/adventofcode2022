@@ -61,21 +61,21 @@ defmodule Day2 do
   defp calculate_round_score("C Z"), do: @draw + @scissors
 
   # Rock need to draw (Rock)
-  defp calculate_round_score_by_outcome("A Y"), do: @draw + @rock
+  defp calculate_round_score_by_outcome("A Y"), do: calculate_round_score("A X")
   # Rock need to lose (Scissors)
-  defp calculate_round_score_by_outcome("A X"), do: @lost + @scissors
+  defp calculate_round_score_by_outcome("A X"), do: calculate_round_score("A Z")
   # Rock need to win (Paper)
-  defp calculate_round_score_by_outcome("A Z"), do: @won + @paper
+  defp calculate_round_score_by_outcome("A Z"), do: calculate_round_score("A Y")
   # Paper need to draw (Paper)
-  defp calculate_round_score_by_outcome("B Y"), do: @draw + @paper
+  defp calculate_round_score_by_outcome("B Y"), do: calculate_round_score("B Y")
   # Paper need to lose (Rock)
-  defp calculate_round_score_by_outcome("B X"), do: @lost + @rock
+  defp calculate_round_score_by_outcome("B X"), do: calculate_round_score("B X")
   # Paper need to win (Scissors)
-  defp calculate_round_score_by_outcome("B Z"), do: @won + @scissors
+  defp calculate_round_score_by_outcome("B Z"), do: calculate_round_score("B Z")
   # Scissors need to draw (Scissors)
-  defp calculate_round_score_by_outcome("C Y"), do: @draw + @scissors
+  defp calculate_round_score_by_outcome("C Y"), do: calculate_round_score("C Z")
   # Scissors need to lose (Paper)
-  defp calculate_round_score_by_outcome("C X"), do: @lost + @paper
+  defp calculate_round_score_by_outcome("C X"), do: calculate_round_score("C Y")
   # Scissors need to win (Rock)
-  defp calculate_round_score_by_outcome("C Z"), do: @won + @rock
+  defp calculate_round_score_by_outcome("C Z"), do: calculate_round_score("C X")
 end
