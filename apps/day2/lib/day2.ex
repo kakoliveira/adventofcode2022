@@ -14,9 +14,14 @@ defmodule Day2 do
   @spec solve(binary() | list(), keyword()) :: number()
   def solve(file_path_or_list, opts \\ [])
 
-  def solve(rounds, _opts) when is_list(rounds) do
+  def solve(rounds, opts) when is_list(rounds) do
+    calculate_round_score_fn =
+      opts
+      |> Keyword.get(:by_outcomes, false)
+      |> get_score_calculator()
+
     rounds
-    |> Enum.map(&calculate_round_score/1)
+    |> Enum.map(calculate_round_score_fn)
     |> Enum.sum()
   end
 
@@ -31,6 +36,10 @@ defmodule Day2 do
     |> FileReader.read()
     |> FileReader.clean_content()
   end
+
+  defp get_score_calculator(true), do: &calculate_round_score_by_outcome/1
+
+  defp get_score_calculator(_by_outcomes), do: &calculate_round_score/1
 
   # Rock vs Paper
   defp calculate_round_score("A Y"), do: @won + @paper
@@ -50,4 +59,23 @@ defmodule Day2 do
   defp calculate_round_score("C X"), do: @won + @rock
   # Scissors vs Scissors
   defp calculate_round_score("C Z"), do: @draw + @scissors
+
+  # Rock need to draw (Rock)
+  defp calculate_round_score_by_outcome("A Y"), do: @draw + @rock
+  # Rock need to lose (Scissors)
+  defp calculate_round_score_by_outcome("A X"), do: @lost + @scissors
+  # Rock need to win (Paper)
+  defp calculate_round_score_by_outcome("A Z"), do: @won + @paper
+  # Paper need to draw (Paper)
+  defp calculate_round_score_by_outcome("B Y"), do: @draw + @paper
+  # Paper need to lose (Rock)
+  defp calculate_round_score_by_outcome("B X"), do: @lost + @rock
+  # Paper need to win (Scissors)
+  defp calculate_round_score_by_outcome("B Z"), do: @won + @scissors
+  # Scissors need to draw (Scissors)
+  defp calculate_round_score_by_outcome("C Y"), do: @draw + @scissors
+  # Scissors need to lose (Paper)
+  defp calculate_round_score_by_outcome("C X"), do: @lost + @paper
+  # Scissors need to win (Rock)
+  defp calculate_round_score_by_outcome("C Z"), do: @won + @rock
 end
