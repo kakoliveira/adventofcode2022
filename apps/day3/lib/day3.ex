@@ -75,9 +75,9 @@ defmodule Day3 do
   end
 
   def solve(file_path, opts) do
-    rucksacks = read_rucksacks(file_path)
-
-    solve(rucksacks, opts)
+    file_path
+    |> read_rucksacks()
+    |> solve(opts)
   end
 
   defp read_rucksacks(file_path) do
@@ -88,25 +88,44 @@ defmodule Day3 do
 
   defp get_priority(rucksack) do
     rucksack
-    |> split_in(2)
+    |> split_in_half()
     |> get_shared_item()
     |> calculate_item_priority()
   end
 
-  defp split_in(rucksack, num_compartments) do
+  defp split_in_half(rucksack) do
     rucksack
     |> String.length()
-    |> then(&String.split_at(rucksack, floor(&1 / num_compartments)))
+    |> calculate_mid_point()
+    |> then(&String.split_at(rucksack, &1))
   end
 
-  defp get_shared_item({compartment_one, compartment_two}) do
-    compartment_one = build_set(compartment_one)
-    compartment_two = build_set(compartment_two)
+  defp calculate_mid_point(rucksack_length) when rem(rucksack_length, 2) == 0 do
+    Integer.floor_div(rucksack_length, 2)
+  end
 
-    compartment_one
-    |> MapSet.intersection(compartment_two)
-    |> MapSet.to_list()
-    |> List.first()
+  defp calculate_mid_point(rucksack_length),
+    do:
+      raise(ArgumentError,
+        message: "expected `rucksack_length` to be even, got: #{rucksack_length}"
+      )
+
+  defp get_shared_item({compartment_one, compartment_two}) do
+    get_shared_item([compartment_one, compartment_two])
+  end
+
+  defp get_shared_item([first_rucksack | other_rucksacks]) do
+    initial_set = build_set(first_rucksack)
+
+    other_rucksacks
+    |> Enum.reduce(initial_set, &intersect/2)
+    |> Enum.at(0)
+  end
+
+  defp intersect(rucksack, set) do
+    rucksack
+    |> build_set()
+    |> MapSet.intersection(set)
   end
 
   defp build_set(compartment) do
@@ -121,15 +140,7 @@ defmodule Day3 do
 
   defp get_badge_priority(rucksack_group) do
     rucksack_group
-    |> Enum.map(&build_set/1)
-    |> find_badge()
+    |> get_shared_item()
     |> calculate_item_priority()
-  end
-
-  defp find_badge([first_set | rest_of_the_group]) do
-    rest_of_the_group
-    |> Enum.reduce(first_set, &MapSet.intersection(&1, &2))
-    |> MapSet.to_list()
-    |> List.first()
   end
 end
