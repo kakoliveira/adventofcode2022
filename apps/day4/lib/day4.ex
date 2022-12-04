@@ -6,9 +6,14 @@ defmodule Day4 do
   @spec solve(binary() | list(), keyword()) :: number()
   def solve(file_path_or_list, opts \\ [])
 
-  def solve(section_assignments, _opts) when is_list(section_assignments) do
+  def solve(section_assignments, opts) when is_list(section_assignments) do
+    overlap_strategy =
+      opts
+      |> Keyword.get(:full_overlap, false)
+      |> get_overlap_strategy()
+
     section_assignments
-    |> Enum.filter(&fully_overlap?/1)
+    |> Enum.filter(overlap_strategy)
     |> Enum.count()
   end
 
@@ -24,6 +29,9 @@ defmodule Day4 do
     |> FileReader.clean_content()
   end
 
+  defp get_overlap_strategy(true), do: &fully_overlap?/1
+  defp get_overlap_strategy(_), do: &overlap?/1
+
   defp fully_overlap?({first_elf_sections, second_elf_sections}) do
     MapSet.subset?(first_elf_sections, second_elf_sections) ||
       MapSet.subset?(second_elf_sections, first_elf_sections)
@@ -31,9 +39,14 @@ defmodule Day4 do
 
   defp fully_overlap?(assignment_pair) do
     assignment_pair
+    |> parse_assignment_pair()
+    |> fully_overlap?()
+  end
+
+  defp parse_assignment_pair(assignment_pair) do
+    assignment_pair
     |> String.split(",")
     |> expand_sections()
-    |> fully_overlap?()
   end
 
   defp expand_sections([first_elf_sections, second_elf_sections]) do
@@ -47,5 +60,17 @@ defmodule Day4 do
       |> Enum.map(&Util.safe_to_integer/1)
 
     MapSet.new(start..finish)
+  end
+
+  defp overlap?({first_elf_sections, second_elf_sections}) do
+    first_elf_sections
+    |> MapSet.disjoint?(second_elf_sections)
+    |> Kernel.not()
+  end
+
+  defp overlap?(assignment_pair) do
+    assignment_pair
+    |> parse_assignment_pair()
+    |> overlap?()
   end
 end
