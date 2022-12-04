@@ -13,7 +13,7 @@ defmodule Day4 do
       |> get_overlap_strategy()
 
     section_assignments
-    |> Enum.filter(overlap_strategy)
+    |> Enum.filter(&overlap?(&1, overlap_strategy))
     |> Enum.count()
   end
 
@@ -30,17 +30,12 @@ defmodule Day4 do
   end
 
   defp get_overlap_strategy(true), do: &fully_overlap?/1
-  defp get_overlap_strategy(_), do: &overlap?/1
+  defp get_overlap_strategy(_false), do: &overlap?/1
 
-  defp fully_overlap?({first_elf_sections, second_elf_sections}) do
-    MapSet.subset?(first_elf_sections, second_elf_sections) ||
-      MapSet.subset?(second_elf_sections, first_elf_sections)
-  end
-
-  defp fully_overlap?(assignment_pair) do
+  defp overlap?(assignment_pair, overlap_strategy) when is_function(overlap_strategy, 1) do
     assignment_pair
     |> parse_assignment_pair()
-    |> fully_overlap?()
+    |> overlap_strategy.()
   end
 
   defp parse_assignment_pair(assignment_pair) do
@@ -62,15 +57,14 @@ defmodule Day4 do
     MapSet.new(start..finish)
   end
 
+  defp fully_overlap?({first_elf_sections, second_elf_sections}) do
+    MapSet.subset?(first_elf_sections, second_elf_sections) ||
+      MapSet.subset?(second_elf_sections, first_elf_sections)
+  end
+
   defp overlap?({first_elf_sections, second_elf_sections}) do
     first_elf_sections
     |> MapSet.disjoint?(second_elf_sections)
     |> Kernel.not()
-  end
-
-  defp overlap?(assignment_pair) do
-    assignment_pair
-    |> parse_assignment_pair()
-    |> overlap?()
   end
 end
