@@ -6,12 +6,12 @@ defmodule Day5 do
   @spec solve(binary() | list(), keyword()) :: String.t()
   def solve(file_path_or_list, opts \\ [])
 
-  def solve(crate_stack_procedure, _opts) when is_list(crate_stack_procedure) do
+  def solve(crate_stack_procedure, opts) when is_list(crate_stack_procedure) do
     {stack_configurations, instructions} = split_stacks_from_instructions(crate_stack_procedure)
 
     stack_configurations
     |> parse_stacks()
-    |> apply_instructions(instructions)
+    |> apply_instructions(instructions, opts)
     |> take_top_crates()
   end
 
@@ -67,7 +67,7 @@ defmodule Day5 do
     end)
   end
 
-  defp apply_instructions(stacks, instructions) do
+  defp apply_instructions(stacks, instructions, opts) do
     stacks = Enum.with_index(stacks)
 
     instructions
@@ -81,7 +81,7 @@ defmodule Day5 do
       {from_stack, from_stack_index} = get_stack(stacks, from_stack_id)
       {to_stack, to_stack_index} = get_stack(stacks, to_stack_id)
 
-      {from_stack, to_stack} = Day5.Stack.move(from_stack, to_stack, num_crates)
+      {from_stack, to_stack} = Day5.Stack.move(from_stack, to_stack, num_crates, opts)
 
       stacks
       |> update_stacks({from_stack, from_stack_index})

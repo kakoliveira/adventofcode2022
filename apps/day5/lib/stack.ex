@@ -24,14 +24,23 @@ defmodule Day5.Stack do
     |> Enum.reverse()
   end
 
-  @spec move(from_stack :: t(), to_stack :: t(), num_crates :: integer()) :: {t(), t()}
-  def move(from_stack, to_stack, num_crates) do
+  @spec move(from_stack :: t(), to_stack :: t(), num_crates :: integer(), opts :: keyword()) ::
+          {t(), t()}
+  def move(from_stack, to_stack, num_crates, opts \\ []) do
+    bulk_move = Keyword.get(opts, :bulk_move, false)
+
     {from_stack, crates} = pop(from_stack, num_crates)
 
-    to_stack = put(to_stack, crates)
+    to_stack =
+      crates
+      |> apply_bulk_move_opt(bulk_move)
+      |> then(&put(to_stack, &1))
 
     {from_stack, to_stack}
   end
+
+  defp apply_bulk_move_opt(crates, true), do: Enum.reverse(crates)
+  defp apply_bulk_move_opt(crates, _false), do: crates
 
   defp pop(%__MODULE__{crate_stack: crate_stack} = stack, num_crates) do
     {moved_crates, updated_stack} =
