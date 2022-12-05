@@ -38,56 +38,58 @@ defmodule Day5 do
   defp parse_stacks(stack_configurations) do
     stack_configurations
     |> Enum.map(&String.split(&1, ""))
-    |> then(fn matrix ->
-      num_columns = Util.Matrix.column_size(matrix)
-
-      Enum.reduce(0..num_columns, [], fn column, acc ->
-        matrix
-        |> Util.Matrix.fetch_column(column)
-        |> Enum.reverse()
-        |> accumulate_stacks(acc)
-      end)
-    end)
-    |> Enum.reverse()
+    |> build_stacks()
   end
 
-  defp accumulate_stacks([stack_id | stack_config], acc) do
-    stack_id
-    |> Util.safe_to_integer()
-    |> then(fn
-      nil ->
-        acc
+  defp build_stacks(matrix) do
+    num_columns = Util.Matrix.column_size(matrix)
 
-      id ->
-        id
-        |> Day5.Stack.new(stack_config)
-        |> then(fn stack ->
-          [stack] ++ acc
-        end)
+    Enum.reduce(num_columns..0, [], fn column, stacks ->
+      matrix
+      |> Util.Matrix.fetch_column(column)
+      |> accumulate_stacks(stacks)
     end)
+  end
+
+  defp accumulate_stacks(stack_config, stacks) do
+    stack_config
+    |> List.last()
+    |> Util.safe_to_integer()
+    |> accumulate_stacks(stack_config, stacks)
+  end
+
+  defp accumulate_stacks(nil, _stack_config, stacks), do: stacks
+
+  defp accumulate_stacks(stack_id, stack_config, stacks) do
+    stack_config
+    |> Enum.drop(-1)
+    |> then(&Day5.Stack.new(stack_id, &1))
+    |> then(&([&1] ++ stacks))
   end
 
   defp apply_instructions(stacks, instructions, opts) do
-    stacks = Enum.with_index(stacks)
-
-    instructions
-    |> Enum.reduce(stacks, fn instruction, stacks ->
-      %{
-        "num_crates" => num_crates,
-        "from_stack_id" => from_stack_id,
-        "to_stack_id" => to_stack_id
-      } = parse_instruction(instruction)
-
-      {from_stack, from_stack_index} = get_stack(stacks, from_stack_id)
-      {to_stack, to_stack_index} = get_stack(stacks, to_stack_id)
-
-      {from_stack, to_stack} = Day5.Stack.move(from_stack, to_stack, num_crates, opts)
-
-      stacks
-      |> update_stacks({from_stack, from_stack_index})
-      |> update_stacks({to_stack, to_stack_index})
-    end)
+    stacks
+    |> Enum.with_index()
+    |> then(fn stacks -> Enum.reduce(instructions, stacks, &apply_instruction(&1, &2, opts)) end)
     |> Enum.map(&elem(&1, 0))
+  end
+
+  defp apply_instruction(instruction, stacks, opts) do
+    %{
+      "num_crates" => num_crates,
+      "from_stack_id" => from_stack_id,
+      "to_stack_id" => to_stack_id
+    } = parse_instruction(instruction)
+
+    {from_stack, from_stack_index} = get_stack(stacks, from_stack_id)
+    {to_stack, to_stack_index} = get_stack(stacks, to_stack_id)
+
+    {updated_from_stack, updated_to_stack} =
+      Day5.Stack.move(from_stack, to_stack, num_crates, opts)
+
+    stacks
+    |> update_stacks({updated_from_stack, from_stack_index})
+    |> update_stacks({updated_to_stack, to_stack_index})
   end
 
   defp parse_instruction(instruction) do
@@ -108,6 +110,6 @@ defmodule Day5 do
   end
 
   defp take_top_crates(final_stacks) do
-    Enum.map_join(final_stacks, &Day5.Stack.top/1)
+    Enum.map_join(final_stacks, &Day5.Stack.top_crate/1)
   end
 end

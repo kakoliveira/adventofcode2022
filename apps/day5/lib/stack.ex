@@ -1,6 +1,8 @@
 defmodule Day5.Stack do
   @moduledoc """
   Represents a Stack of crates
+
+  The first element of the `crate_stack` is the top of the stack.
   """
 
   @type t :: %__MODULE__{
@@ -11,7 +13,7 @@ defmodule Day5.Stack do
   defstruct crate_stack: [], id: nil
 
   @spec new(stack_id :: integer(), stack_config :: list(String.t())) :: t()
-  def new(stack_id, stack_config) do
+  def new(stack_id, stack_config) when is_integer(stack_id) do
     %__MODULE__{
       crate_stack: clean_stack(stack_config),
       id: stack_id
@@ -19,46 +21,48 @@ defmodule Day5.Stack do
   end
 
   defp clean_stack(stack_config) do
-    stack_config
-    |> Enum.reject(&(&1 == " "))
-    |> Enum.reverse()
+    Enum.reject(stack_config, &(&1 == " "))
   end
 
+  @doc """
+  ## Options
+
+    `bulk_move`: boolean. Defaults to false.
+      If true, the crane moves all the `num_crates` at once.
+  """
   @spec move(from_stack :: t(), to_stack :: t(), num_crates :: integer(), opts :: keyword()) ::
           {t(), t()}
-  def move(from_stack, to_stack, num_crates, opts \\ []) do
+  def move(from_stack, to_stack, num_crates, opts \\ []) when is_integer(num_crates) do
     bulk_move = Keyword.get(opts, :bulk_move, false)
 
-    {from_stack, crates} = pop(from_stack, num_crates)
+    {from_stack, crates} = take(from_stack, num_crates)
 
-    to_stack =
-      crates
-      |> apply_bulk_move_opt(bulk_move)
-      |> then(&put(to_stack, &1))
+    to_stack = put(to_stack, crates, bulk_move)
 
     {from_stack, to_stack}
+  end
+
+  defp take(%__MODULE__{crate_stack: crate_stack} = stack, num_crates) do
+    {moved_crates, updated_stack} = Enum.reduce(1..num_crates, {[], crate_stack}, &take_crate/2)
+
+    {%{stack | crate_stack: updated_stack}, moved_crates}
+  end
+
+  defp take_crate(_crate_number, {moved_crates, crates}) do
+    {crate, updated_stack} = List.pop_at(crates, 0)
+
+    {[crate] ++ moved_crates, updated_stack}
+  end
+
+  defp put(%__MODULE__{crate_stack: crate_stack} = stack, crates, bulk_move) do
+    crates
+    |> apply_bulk_move_opt(bulk_move)
+    |> then(&%{stack | crate_stack: &1 ++ crate_stack})
   end
 
   defp apply_bulk_move_opt(crates, true), do: Enum.reverse(crates)
   defp apply_bulk_move_opt(crates, _false), do: crates
 
-  defp pop(%__MODULE__{crate_stack: crate_stack} = stack, num_crates) do
-    {moved_crates, updated_stack} =
-      Enum.reduce(1..num_crates, {[], crate_stack}, fn _crate_number, {moved_crates, crates} ->
-        {crate, updated_stack} = List.pop_at(crates, 0)
-
-        {[crate] ++ moved_crates, updated_stack}
-      end)
-
-    {%{stack | crate_stack: updated_stack}, moved_crates}
-  end
-
-  defp put(%__MODULE__{crate_stack: crate_stack} = stack, crates) do
-    %{stack | crate_stack: crates ++ crate_stack}
-  end
-
-  @spec top(stack :: t()) :: String.t()
-  def top(%__MODULE__{crate_stack: [top_crate | _]}) do
-    top_crate
-  end
+  @spec top_crate(stack :: t()) :: String.t()
+  def top_crate(%__MODULE__{crate_stack: [top_crate | _]}), do: top_crate
 end
