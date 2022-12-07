@@ -15,6 +15,20 @@ defmodule Day7 do
     |> Enum.sum()
   end
 
+  def solve(["$ cd /" | terminal_output],
+        disk_space: disk_space,
+        min_needed_free_space: min_needed_free_space
+      )
+      when is_list(terminal_output) and is_integer(disk_space) and
+             is_integer(min_needed_free_space) do
+    terminal_output
+    |> process_terminal_output(%{name: "/", children: [], size: 0}, "/")
+    |> find_suitable_directories_to_delete(disk_space, min_needed_free_space)
+    |> Enum.sort_by(& &1.size)
+    |> List.first()
+    |> Map.get(:size)
+  end
+
   def solve(file_path, opts) do
     file_path
     |> read_terminal_output()
@@ -142,4 +156,40 @@ defmodule Day7 do
   end
 
   defp maybe_add_current_directory(_directory, _max_dir_size), do: []
+
+  defp find_suitable_directories_to_delete(
+         %{children: children, size: root_dir_size},
+         disk_space,
+         min_needed_free_space
+       ) do
+    disk_space
+    |> Kernel.-(root_dir_size)
+    |> then(&Kernel.-(min_needed_free_space, &1))
+    |> then(&find_suitable_directories_to_delete(children, &1, []))
+  end
+
+  defp find_suitable_directories_to_delete([], _min_needed_space, directories), do: directories
+
+  defp find_suitable_directories_to_delete(
+         [%{name: _name, children: subdirectory_children} = directory | children],
+         min_needed_space,
+         directories
+       ) do
+    directory
+    |> maybe_add_current_directory_2(min_needed_space)
+    |> Kernel.++(find_suitable_directories_to_delete(subdirectory_children, min_needed_space, []))
+    |> Kernel.++(directories)
+    |> then(&find_suitable_directories_to_delete(children, min_needed_space, &1))
+  end
+
+  defp find_suitable_directories_to_delete([_file | children], min_needed_space, directories) do
+    find_suitable_directories_to_delete(children, min_needed_space, directories)
+  end
+
+  defp maybe_add_current_directory_2(%{size: size} = directory, min_needed_space)
+       when size >= min_needed_space do
+    [directory]
+  end
+
+  defp maybe_add_current_directory_2(_directory, _max_dir_size), do: []
 end
