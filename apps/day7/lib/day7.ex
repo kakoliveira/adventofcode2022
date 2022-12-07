@@ -9,7 +9,7 @@ defmodule Day7 do
   def solve(["$ cd /" | terminal_output], max_dir_size: max_dir_size)
       when is_list(terminal_output) and is_integer(max_dir_size) do
     terminal_output
-    |> process_terminal_output(%{name: "/", children: [], size: 0}, "/")
+    |> process_terminal_output(%{name: "/", children: [], size: 0})
     |> extract_directories_by_size(max_dir_size)
     |> Enum.map(& &1.size)
     |> Enum.sum()
@@ -22,7 +22,7 @@ defmodule Day7 do
       when is_list(terminal_output) and is_integer(disk_space) and
              is_integer(min_needed_free_space) do
     terminal_output
-    |> process_terminal_output(%{name: "/", children: [], size: 0}, "/")
+    |> process_terminal_output(%{name: "/", children: [], size: 0})
     |> find_suitable_directories_to_delete(disk_space, min_needed_free_space)
     |> Enum.sort_by(& &1.size)
     |> List.first()
@@ -41,13 +41,13 @@ defmodule Day7 do
     |> FileReader.clean_content()
   end
 
-  defp process_terminal_output([], directory, _current_dir), do: directory
+  defp process_terminal_output([], directory), do: directory
 
-  defp process_terminal_output([terminal_output_line | terminal_output], directory, current_dir) do
+  defp process_terminal_output([terminal_output_line | terminal_output], directory) do
     terminal_output_line
     |> parse_output_line()
     |> update_directory(directory, terminal_output)
-    |> then(&process_terminal_output(elem(&1, 1), elem(&1, 0), current_dir))
+    |> then(&process_terminal_output(elem(&1, 1), elem(&1, 0)))
   end
 
   defp parse_output_line("$ ls"), do: :noop
@@ -61,9 +61,7 @@ defmodule Day7 do
     |> parse_file_output()
   end
 
-  defp parse_file_output([size, file_name]) do
-    {:file, {file_name, Util.safe_to_integer(size)}}
-  end
+  defp parse_file_output([size, file_name]), do: {:file, {file_name, Util.safe_to_integer(size)}}
 
   defp update_directory(:noop, directory, terminal_output), do: {directory, terminal_output}
 
@@ -72,10 +70,7 @@ defmodule Day7 do
 
   defp update_directory({:cd, directory_name}, directory, terminal_output) do
     terminal_output
-    |> process_subdirectory(
-      %{name: directory_name, children: [], size: 0},
-      directory_name
-    )
+    |> process_subdirectory(%{name: directory_name, children: [], size: 0})
     |> update_children(directory)
   end
 
@@ -92,28 +87,23 @@ defmodule Day7 do
     |> then(&{&1, terminal_output})
   end
 
-  defp append_directory(children, directory_name) do
-    [%{name: directory_name, children: [], size: 0}] ++ children
-  end
+  defp append_directory(children, directory_name),
+    do: [%{name: directory_name, children: [], size: 0}] ++ children
 
-  defp append_file(children, {file_name, size}) do
-    [%{file_name: file_name, size: size}] ++ children
-  end
+  defp append_file(children, {file_name, size}),
+    do: [%{file_name: file_name, size: size}] ++ children
 
   defp update_directory_size(dir_size, {_file_name, file_size}), do: dir_size + file_size
   defp update_directory_size(dir_size, subdirectory_size), do: dir_size + subdirectory_size
 
-  defp process_subdirectory(terminal_output, {:end, directory}, _current_dir),
-    do: {directory, terminal_output}
+  defp process_subdirectory(terminal_output, {:end, directory}), do: {directory, terminal_output}
+  defp process_subdirectory([], directory), do: {directory, []}
 
-  defp process_subdirectory([], directory, _current_dir),
-    do: {directory, []}
-
-  defp process_subdirectory([terminal_output_line | terminal_output], directory, current_dir) do
+  defp process_subdirectory([terminal_output_line | terminal_output], directory) do
     terminal_output_line
     |> parse_output_line()
     |> update_directory(directory, terminal_output)
-    |> then(&process_subdirectory(elem(&1, 1), elem(&1, 0), current_dir))
+    |> then(&process_subdirectory(elem(&1, 1), elem(&1, 0)))
   end
 
   defp update_children({%{name: dir_name, size: size} = child, terminal_output}, directory) do
@@ -127,10 +117,8 @@ defmodule Day7 do
     |> then(&{&1, terminal_output})
   end
 
-  defp extract_directories_by_size(%{children: children}, max_dir_size) do
-    children
-    |> extract_directories_by_size(max_dir_size, [])
-  end
+  defp extract_directories_by_size(%{children: children}, max_dir_size),
+    do: extract_directories_by_size(children, max_dir_size, [])
 
   defp extract_directories_by_size([], _max_dir_size, directories), do: directories
 
@@ -146,14 +134,12 @@ defmodule Day7 do
     |> then(&extract_directories_by_size(children, max_dir_size, &1))
   end
 
-  defp extract_directories_by_size([_file | children], max_dir_size, directories) do
-    extract_directories_by_size(children, max_dir_size, directories)
-  end
+  defp extract_directories_by_size([_file | children], max_dir_size, directories),
+    do: extract_directories_by_size(children, max_dir_size, directories)
 
   defp maybe_add_current_directory(%{size: size} = directory, max_dir_size)
-       when size <= max_dir_size do
-    [directory]
-  end
+       when size <= max_dir_size,
+       do: [directory]
 
   defp maybe_add_current_directory(_directory, _max_dir_size), do: []
 
@@ -182,14 +168,12 @@ defmodule Day7 do
     |> then(&find_suitable_directories_to_delete(children, min_needed_space, &1))
   end
 
-  defp find_suitable_directories_to_delete([_file | children], min_needed_space, directories) do
-    find_suitable_directories_to_delete(children, min_needed_space, directories)
-  end
+  defp find_suitable_directories_to_delete([_file | children], min_needed_space, directories),
+    do: find_suitable_directories_to_delete(children, min_needed_space, directories)
 
   defp maybe_add_current_directory_2(%{size: size} = directory, min_needed_space)
-       when size >= min_needed_space do
-    [directory]
-  end
+       when size >= min_needed_space,
+       do: [directory]
 
   defp maybe_add_current_directory_2(_directory, _max_dir_size), do: []
 end
