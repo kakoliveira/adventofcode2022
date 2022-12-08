@@ -37,7 +37,7 @@ defmodule Day8Test do
     test "challenge" do
       file_path = Path.join(File.cwd!(), "input.txt")
 
-      assert 1859 == Day8.solve(file_path, scenic_score: true)
+      assert 332_640 == Day8.solve(file_path, scenic_score: true)
     end
   end
 end
