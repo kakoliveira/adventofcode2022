@@ -62,4 +62,27 @@ defmodule Util.Matrix do
 
     {matrix, num_rows, num_columns}
   end
+
+  @spec reduce_matrix(matrix() | {matrix(), integer(), integer()}, function(), any()) :: any()
+  def reduce_matrix(matrix, reducer, initial_value \\ nil)
+
+  def reduce_matrix(matrix, reducer, initial_value)
+      when is_list(matrix) and is_function(reducer, 3) do
+    matrix
+    |> describe()
+    |> convert_to_index()
+    |> reduce_matrix(reducer, initial_value)
+  end
+
+  def reduce_matrix({matrix, max_row_index, max_column_index}, reducer, initial_value)
+      when is_list(matrix) and is_function(reducer, 3) do
+    Enum.reduce(0..max_row_index, initial_value, fn row_index, acc ->
+      Enum.reduce(0..max_column_index, acc, fn col_index, acc ->
+        reducer.({row_index, col_index}, acc, {matrix, max_row_index, max_column_index})
+      end)
+    end)
+  end
+
+  defp convert_to_index({matrix, num_rows, num_columns}),
+    do: {matrix, num_rows - 1, num_columns - 1}
 end

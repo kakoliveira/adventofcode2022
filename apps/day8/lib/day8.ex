@@ -9,20 +9,7 @@ defmodule Day8 do
   def solve(tree_heights, opts) when is_list(tree_heights) do
     tree_heights
     |> Util.Matrix.parse_matrix(to_integer: true)
-    |> Util.Matrix.describe()
-    |> convert_to_index()
-    |> solve(opts)
-  end
-
-  def solve(tree_heights, scenic_score: true) when is_tuple(tree_heights) do
-    tree_heights
-    |> find_best_scenic_view_tree()
-  end
-
-  def solve(tree_heights, _opts) when is_tuple(tree_heights) do
-    tree_heights
-    |> find_visible_trees()
-    |> length()
+    |> do_solve(opts)
   end
 
   def solve(file_path, opts) do
@@ -37,21 +24,20 @@ defmodule Day8 do
     |> FileReader.clean_content()
   end
 
-  defp convert_to_index({tree_matrix, num_rows, num_columns}),
-    do: {tree_matrix, num_rows - 1, num_columns - 1}
+  defp do_solve(tree_heights, scenic_score: true) do
+    Util.Matrix.reduce_matrix(tree_heights, &find_best_scenic_view_tree/3)
+  end
 
-  defp find_visible_trees({tree_matrix, max_row_index, max_column_index}) do
-    0..max_row_index
-    |> Enum.reduce([], fn row_index, acc ->
-      0..max_column_index
-      |> Enum.reduce(acc, fn col_index, acc ->
-        point = {row_index, col_index}
+  defp do_solve(tree_heights, _opts) do
+    tree_heights
+    |> Util.Matrix.reduce_matrix(&find_visible_trees/3, [])
+    |> length()
+  end
 
-        point
-        |> is_visible?(tree_matrix, max_row_index, max_column_index)
-        |> update_acc(point, acc)
-      end)
-    end)
+  defp find_visible_trees(point, acc, {tree_matrix, max_row_index, max_column_index}) do
+    point
+    |> is_visible?(tree_matrix, max_row_index, max_column_index)
+    |> update_acc(point, acc)
   end
 
   defp is_visible?({0, _col_index}, _tree_matrix, _num_rows, _num_columns), do: true
@@ -102,18 +88,10 @@ defmodule Day8 do
   defp update_acc(true, point, acc), do: [point] ++ acc
   defp update_acc(_false, _point, acc), do: acc
 
-  defp find_best_scenic_view_tree({tree_matrix, max_row_index, max_column_index}) do
-    0..max_row_index
-    |> Enum.reduce(fn row_index, acc ->
-      0..max_column_index
-      |> Enum.reduce(acc, fn col_index, acc ->
-        point = {row_index, col_index}
-
-        point
-        |> calculate_scenic_score(tree_matrix, max_row_index, max_column_index)
-        |> keep_best_point(acc)
-      end)
-    end)
+  defp find_best_scenic_view_tree(point, acc, {tree_matrix, max_row_index, max_column_index}) do
+    point
+    |> calculate_scenic_score(tree_matrix, max_row_index, max_column_index)
+    |> keep_best_point(acc)
   end
 
   defp calculate_scenic_score({0, _col_index}, _tree_matrix, _num_rows, _num_columns), do: 0
