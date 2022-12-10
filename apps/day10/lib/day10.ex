@@ -6,9 +6,23 @@ defmodule Day10 do
   @spec solve(binary() | list(), keyword()) :: number()
   def solve(file_path_or_list, opts \\ [])
 
+  def solve(cpu_instructions, draw_crt: true) when is_list(cpu_instructions) do
+    cpu_instructions
+    |> perform_cycles(1)
+    |> Map.get(:cycles)
+    |> Enum.sort_by(&elem(&1, 0))
+    |> Enum.chunk_every(40, 40, :discard)
+    |> Enum.map(fn row ->
+      Enum.map(row, fn horizontal_point ->
+        draw_pixel(horizontal_point)
+      end)
+    end)
+    |> draw_crt()
+  end
+
   def solve(cpu_instructions, _opts) when is_list(cpu_instructions) do
     cpu_instructions
-    |> perform_cycles(220, 1)
+    |> perform_cycles(1)
     |> take_cycles(20, 40, 220)
     |> Enum.map(&calculate_signal_strength/1)
     |> Enum.sum()
@@ -26,12 +40,11 @@ defmodule Day10 do
     |> FileReader.clean_content()
   end
 
-  defp perform_cycles(cpu_instructions, final_cycle, initial_x_value) do
+  defp perform_cycles(cpu_instructions, initial_x_value) do
     cpu_instructions
     |> Enum.reduce(
       %{
         current_cycle: 1,
-        final_cycle: final_cycle,
         cycles: %{1 => initial_x_value},
         x: initial_x_value
       },
@@ -92,4 +105,22 @@ defmodule Day10 do
   end
 
   defp calculate_signal_strength({cycle, x_value}), do: cycle * x_value
+
+  defp draw_pixel({cycle, x_value}) do
+    if get_sprite_position(cycle) in [x_value - 1, x_value, x_value + 1] do
+      "#"
+    else
+      "."
+    end
+  end
+
+  defp get_sprite_position(cycle) do
+    cycle
+    |> Kernel.-(1)
+    |> rem(40)
+  end
+
+  defp draw_crt(crt_matrix) do
+    Enum.map(crt_matrix, &Enum.join/1)
+  end
 end
