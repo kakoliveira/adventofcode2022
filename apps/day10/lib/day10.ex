@@ -13,9 +13,7 @@ defmodule Day10 do
     |> Enum.sort_by(&elem(&1, 0))
     |> Enum.chunk_every(40, 40, :discard)
     |> Enum.map(fn row ->
-      Enum.map(row, fn horizontal_point ->
-        draw_pixel(horizontal_point)
-      end)
+      Enum.map(row, &draw_pixel/1)
     end)
     |> draw_crt()
   end
@@ -41,8 +39,8 @@ defmodule Day10 do
   end
 
   defp perform_cycles(cpu_instructions, initial_x_value) do
-    cpu_instructions
-    |> Enum.reduce(
+    Enum.reduce(
+      cpu_instructions,
       %{
         current_cycle: 1,
         cycles: %{1 => initial_x_value},
@@ -107,12 +105,16 @@ defmodule Day10 do
   defp calculate_signal_strength({cycle, x_value}), do: cycle * x_value
 
   defp draw_pixel({cycle, x_value}) do
-    if get_sprite_position(cycle) in [x_value - 1, x_value, x_value + 1] do
-      "#"
-    else
-      "."
-    end
+    cycle
+    |> get_sprite_position()
+    |> draw_pixel(x_value)
   end
+
+  defp draw_pixel(sprite_position, x_value)
+       when sprite_position in [x_value - 1, x_value, x_value + 1],
+       do: "#"
+
+  defp draw_pixel(_sprite_position, _x_value), do: "."
 
   defp get_sprite_position(cycle) do
     cycle
