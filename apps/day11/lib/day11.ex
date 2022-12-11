@@ -6,11 +6,15 @@ defmodule Day11 do
   @spec solve(binary() | list(), keyword()) :: number()
   def solve(file_path_or_list, opts \\ [])
 
-  def solve(monkeys, _opts) when is_list(monkeys) do
+  def solve(monkeys, opts) when is_list(monkeys) do
+    num_rounds = Keyword.get(opts, :rounds, 20)
+    apply_relief? = Keyword.get(opts, :relief, true)
+
     monkeys
     |> Enum.chunk_every(6)
     |> Map.new(&parse_monkey/1)
-    |> run_rounds(20)
+    |> run_rounds(num_rounds, apply_relief?)
+    |> elem(1)
     |> Enum.map(&elem(&1, 1).inspections)
     |> Enum.sort(:desc)
     |> Enum.take(2)
@@ -33,7 +37,7 @@ defmodule Day11 do
   defp parse_monkey([monkey_id, starting_items, operation | test]) do
     {parse_monkey_id(monkey_id),
      %{
-       items: parse_starting_items(starting_items),
+       starting_items: parse_starting_items(starting_items),
        worry_operation: parse_operation(operation),
        target_strategy: parse_target_strategy(test),
        inspections: 0
@@ -82,61 +86,59 @@ defmodule Day11 do
     end
   end
 
-  defp run_rounds(monkeys, num_rounds) do
-    Enum.reduce(1..num_rounds, monkeys, &play_round/2)
+  defp run_rounds(monkeys, num_rounds, apply_relief?) do
+    state = {prepare_items(monkeys), monkeys}
+
+    Enum.reduce(1..num_rounds, state, &play_round(&1, &2, apply_relief?))
   end
 
-  defp play_round(_round, monkeys) do
-    Enum.reduce(monkeys, monkeys, &monkey_round/2)
-  end
-
-  defp monkey_round({monkey_id, monkey}, monkeys) do
-    items = get_items_to_inspect(monkeys, monkey_id)
-
-    items
-    |> Enum.map(&inspect_item(&1, monkey))
-    |> move_items(monkey, monkeys)
-    |> finish_round_for(monkey_id, length(items))
-  end
-
-  defp get_items_to_inspect(monkeys, monkey_id) do
+  defp prepare_items(monkeys) do
     monkeys
-    |> Map.get(monkey_id)
-    |> Map.get(:items)
+    |> Enum.flat_map(&get_items/1)
+    |> Enum.with_index()
+    |> Map.new(&{elem(&1, 1), elem(&1, 0)})
   end
 
-  defp inspect_item(item, %{worry_operation: worry_operation}) do
-    item
-    |> worry_operation.()
-    |> apply_worry_relief()
+  defp get_items({monkey_id, %{starting_items: starting_items}}) do
+    Enum.map(starting_items, &{monkey_id, &1})
   end
 
-  defp apply_worry_relief(worry), do: Integer.floor_div(worry, 3)
-
-  defp move_items(items, %{target_strategy: target_strategy}, monkeys) do
-    items
-    |> Enum.reduce(monkeys, fn item, monkeys ->
-      item
-      |> target_strategy.()
-      |> move_item(item, monkeys)
+  defp play_round(_round, {items, monkeys}, apply_relief?) do
+    Enum.reduce(monkeys, {items, monkeys}, fn {monkey_id, _}, {items, monkeys} ->
+      items
+      |> take_by_monkey(monkey_id)
+      |> Enum.reduce({items, monkeys}, &monkey_round(&1, &2, apply_relief?))
     end)
   end
 
-  defp move_item(target_monkey_id, item, monkeys) do
-    Map.update!(monkeys, target_monkey_id, &receive_item(&1, item))
+  defp take_by_monkey(items, monkey_id) do
+    Map.filter(items, &(elem(elem(&1, 1), 0) == monkey_id))
   end
 
-  defp receive_item(monkey, item) do
-    Map.update!(monkey, :items, &Enum.concat(&1, [item]))
+  defp monkey_round({key, {monkey_id, worry}}, {items, monkeys}, apply_relief?) do
+    %{target_strategy: target_strategy} = monkey = Map.get(monkeys, monkey_id)
+
+    new_worry = inspect_item(worry, monkey, apply_relief?)
+
+    target_monkey = target_strategy.(new_worry)
+
+    {Map.put(items, key, {target_monkey, new_worry}), finish_round_for(monkeys, monkey_id)}
   end
 
-  defp finish_round_for(monkeys, monkey_id, num_inspections) do
-    Map.update!(monkeys, monkey_id, &finish_round(&1, num_inspections))
+  defp inspect_item(item, %{worry_operation: worry_operation}, apply_relief?) do
+    item
+    |> worry_operation.()
+    |> apply_worry_relief(apply_relief?)
   end
 
-  defp finish_round(monkey, num_inspections) do
-    monkey
-    |> Map.put(:items, [])
-    |> Map.update!(:inspections, &(&1 + num_inspections))
+  defp apply_worry_relief(worry, false), do: worry
+  defp apply_worry_relief(worry, _true), do: Integer.floor_div(worry, 3)
+
+  defp finish_round_for(monkeys, monkey_id) do
+    Map.update!(monkeys, monkey_id, &finish_round/1)
+  end
+
+  defp finish_round(monkey) do
+    Map.update!(monkey, :inspections, &(&1 + 1))
   end
 end
